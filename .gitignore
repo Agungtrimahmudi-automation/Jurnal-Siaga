@@ -1,0 +1,56 @@
+# ─────────────────────────────────────────────────────────────
+#  RAHASIA / CREDENTIAL — JANGAN PERNAH di-commit ke GitHub
+#  (portfolio publik: semua di bawah ini tetap lokal saja)
+# ─────────────────────────────────────────────────────────────
+
+# Variabel lingkungan & kunci API
+.env
+.env.*
+!.env.example
+
+# Kredensial Google OAuth / Service Account
+credentials.json
+token.json
+*service-account*.json
+*service_account*.json
+client_secret*.json
+
+# Folder khusus penampung semua file sensitif mentah
+# (link ownership-transfer, export n8n mentah berisi ID asli, dsb.)
+secrets/
+
+# ─────────────────────────────────────────────────────────────
+#  File sementara / hasil proses (bisa dibuat ulang)
+# ─────────────────────────────────────────────────────────────
+.tmp/
+*.tmp
+*.log
+
+# Output lokal (PDF/spreadsheet hasil generate saat testing)
+output/
+*.pdf
+
+# ─────────────────────────────────────────────────────────────
+#  Python
+# ─────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.Python
+*.egg-info/
+
+# ─────────────────────────────────────────────────────────────
+#  OS / Editor
+# ─────────────────────────────────────────────────────────────
+Thumbs.db
+Desktop.ini
+.DS_Store
+.vscode/
+.idea/
+
+# ─────────────────────────────────────────────────────────────
+#  Claude Code — jangan bocorkan izin/log lokal
+# ─────────────────────────────────────────────────────────────
+.claude/settings.local.json

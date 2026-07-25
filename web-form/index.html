@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Jurnal Siaga — Input Shift Bulanan</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='68' font-size='68' text-anchor='middle'%3E%E2%9B%91%EF%B8%8F%3C/text%3E%3C/svg%3E">
+  <style>
+    :root {
+      --navy-900: #0b1f3a;
+      --navy-800: #12294f;
+      --navy-700: #1a3a68;
+      --amber-500: #f2a900;
+      --amber-600: #d99400;
+      --ok-600: #16a34a;
+      --err-600: #dc2626;
+      --gray-50: #f7f8fa;
+      --gray-100: #eef1f5;
+      --gray-300: #d6dce4;
+      --gray-500: #6b7686;
+      --gray-700: #384252;
+      --radius: 14px;
+      --shadow: 0 10px 30px rgba(11, 31, 58, 0.12);
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(160deg, var(--navy-900) 0%, var(--navy-800) 45%, var(--gray-50) 45%);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--gray-700);
+      min-height: 100vh;
+    }
+    .page {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 32px 20px 60px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      color: #fff;
+      margin-bottom: 22px;
+      padding: 0 4px;
+    }
+    .brand-badge {
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      background: var(--amber-500);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(242, 169, 0, 0.35);
+    }
+    .brand h1 {
+      font-size: 18px;
+      margin: 0;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+    .brand p {
+      margin: 2px 0 0;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.7);
+    }
+    .card {
+      background: #fff;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .card-header {
+      padding: 22px 26px;
+      border-bottom: 1px solid var(--gray-100);
+    }
+    .card-header h2 {
+      margin: 0 0 4px;
+      font-size: 17px;
+      color: var(--navy-900);
+    }
+    .card-header p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--gray-500);
+      line-height: 1.5;
+    }
+    form { padding: 24px 26px 28px; }
+    .field { margin-bottom: 22px; }
+    .field label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--navy-900);
+      margin-bottom: 8px;
+    }
+    .field .hint {
+      font-size: 12px;
+      color: var(--gray-500);
+      margin-top: 6px;
+    }
+    .row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    input[type="text"],
+    input[type="email"],
+    input[type="number"],
+    select {
+      width: 100%;
+      padding: 11px 13px;
+      border: 1.5px solid var(--gray-300);
+      border-radius: 9px;
+      font-size: 14px;
+      color: var(--gray-700);
+      background: #fff;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      appearance: none;
+    }
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7686' stroke-width='1.6' fill='none' fill-rule='evenodd'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 13px center;
+      padding-right: 34px;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--navy-700);
+      box-shadow: 0 0 0 3px rgba(26, 58, 104, 0.12);
+    }
+    .shift-options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .shift-card {
+      border: 1.5px solid var(--gray-300);
+      border-radius: 10px;
+      padding: 14px 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s, transform 0.1s;
+      user-select: none;
+    }
+    .shift-card:hover { border-color: var(--navy-700); }
+    .shift-card .emoji { font-size: 22px; display: block; margin-bottom: 6px; }
+    .shift-card .label { font-size: 13px; font-weight: 700; color: var(--navy-900); }
+    .shift-card .time { font-size: 11px; color: var(--gray-500); margin-top: 2px; }
+    .shift-card.active {
+      border-color: var(--amber-500);
+      background: #fff8e8;
+      box-shadow: 0 0 0 3px rgba(242, 169, 0, 0.18);
+    }
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+    }
+    .day-btn {
+      aspect-ratio: 1;
+      border: 1.5px solid var(--gray-300);
+      background: #fff;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gray-700);
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    .day-btn:hover { border-color: var(--navy-700); }
+    .day-btn.selected {
+      background: var(--navy-800);
+      border-color: var(--navy-800);
+      color: #fff;
+    }
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 12px;
+      min-height: 0;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--navy-900);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 5px 6px 5px 11px;
+      border-radius: 999px;
+    }
+    .chip button {
+      background: rgba(255, 255, 255, 0.18);
+      border: none;
+      color: #fff;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 11px;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .error-text {
+      color: var(--err-600);
+      font-size: 12px;
+      margin-top: 6px;
+      display: none;
+    }
+    .field.invalid .error-text { display: block; }
+    .field.invalid input,
+    .field.invalid select {
+      border-color: var(--err-600);
+    }
+    .submit-btn {
+      width: 100%;
+      padding: 14px;
+      background: var(--navy-900);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .submit-btn:hover { background: var(--navy-700); }
+    .submit-btn:active { transform: scale(0.99); }
+    .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+    .submit-btn.loading .spinner { display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .banner {
+      display: none;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      margin-bottom: 20px;
+    }
+    .banner.show { display: flex; }
+    .banner.error { background: #fef2f2; color: var(--err-600); border: 1px solid #fecaca; }
+    .state-view { display: none; padding: 46px 26px 50px; text-align: center; }
+    .state-view.show { display: block; }
+    .state-icon {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      margin: 0 auto 16px;
+    }
+    .state-icon.success { background: #dcfce7; color: var(--ok-600); }
+    .state-view h3 { margin: 0 0 8px; color: var(--navy-900); font-size: 17px; }
+    .state-view p { margin: 0 0 22px; font-size: 13px; color: var(--gray-500); line-height: 1.6; }
+    .ghost-btn {
+      display: inline-block;
+      padding: 10px 22px;
+      border: 1.5px solid var(--gray-300);
+      border-radius: 9px;
+      background: #fff;
+      color: var(--navy-900);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .footer-note {
+      text-align: center;
+      font-size: 11px;
+      color: var(--gray-500);
+      margin-top: 18px;
+      padding: 0 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="brand">
+      <div class="brand-badge">⛑️</div>
+      <div>
+        <h1>Jurnal Siaga Bulanan</h1>
+        <p>Form input jadwal shift bulanan</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div id="formState" class="state-view">
+        <div class="card-header">
+          <h2>Isi Jadwal Shift Anda</h2>
+          <p>Lengkapi seluruh field berikut. Data akan diproses otomatis menjadi jurnal siaga per tanggal.</p>
+        </div>
+
+        <div id="banner" class="banner error">
+          <span>⚠️</span>
+          <span id="bannerText"></span>
+        </div>
+
+        <form id="jurnalForm" onsubmit="return false;">
+          <div class="row-2">
+            <div class="field" id="field-bulan">
+              <label for="bulan">Bulan</label>
+              <select id="bulan">
+                <option value="">Pilih bulan</option>
+              </select>
+              <div class="error-text">Bulan wajib dipilih.</div>
+            </div>
+            <div class="field" id="field-tahun">
+              <label for="tahun">Tahun</label>
+              <input type="number" id="tahun" placeholder="2026" min="2020" max="2100">
+              <div class="error-text">Tahun tidak valid.</div>
+            </div>
+          </div>
+
+          <div class="field" id="field-shift">
+            <label>Shift Awal Bulan Ini</label>
+            <div class="shift-options">
+              <div class="shift-card" data-shift="S1">
+                <span class="emoji">☀️</span>
+                <span class="label">S1 — Pagi</span>
+                <span class="time">08.00 – 20.00</span>
+              </div>
+              <div class="shift-card" data-shift="S2">
+                <span class="emoji">🌙</span>
+                <span class="label">S2 — Malam</span>
+                <span class="time">20.00 – 08.00</span>
+              </div>
+            </div>
+            <p class="hint">Shift akan bergantian otomatis per tanggal, dimulai dari pilihan ini.</p>
+            <div class="error-text">Pilih shift awal (S1 atau S2).</div>
+          </div>
+
+          <div class="field" id="field-tanggal">
+            <label>Tanggal Shift Anda Bulan Ini</label>
+            <div class="calendar-grid" id="calendarGrid"></div>
+            <div class="chips" id="selectedChips"></div>
+            <div class="error-text">Pilih minimal satu tanggal.</div>
+          </div>
+
+          <div class="field" id="field-email">
+            <label for="email">Email Pengaju</label>
+            <input type="email" id="email" placeholder="emailkamu@gmail.com">
+            <div class="hint">Jurnal PDF akan dikirim ke alamat ini.</div>
+            <div class="error-text">Masukkan email yang valid.</div>
+          </div>
+
+          <button type="submit" class="submit-btn" id="submitBtn" onclick="handleSubmit()">
+            <span class="spinner"></span>
+            <span id="submitLabel">Kirim Jadwal Shift</span>
+          </button>
+        </form>
+      </div>
+
+      <div id="successState" class="state-view">
+        <div class="state-icon success">✓</div>
+        <h3>Jadwal Berhasil Dikirim</h3>
+        <p>Data shift Anda telah tercatat dan akan diproses otomatis menjadi jurnal siaga per tanggal.</p>
+        <button class="ghost-btn" onclick="resetForm()">Isi Jadwal Lain</button>
+      </div>
+    </div>
+
+    <p class="footer-note">Data hanya digunakan untuk keperluan pencatatan jurnal siaga dinas.</p>
+  </div>
+
+  <script>
+    // Ganti dengan URL deployment Web App Apps Script (diakhiri /exec).
+    // Didapat dari: script.google.com -> Deploy -> Manage deployments.
+    var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx4GKuQCeN-sJD1HA5BErNwuLLXd-T9-RXF6HnNOnfVgV7JgcaGLIQ6V_IaspA4FQ6Yew/exec';
+
+    var BULAN_LIST = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+    var selectedShift = null;
+    var selectedDates = [];
+
+    function initBulanOptions() {
+      var sel = document.getElementById('bulan');
+      BULAN_LIST.forEach(function (b) {
+        var opt = document.createElement('option');
+        opt.value = b;
+        opt.textContent = b;
+        sel.appendChild(opt);
+      });
+      var now = new Date();
+      document.getElementById('tahun').value = now.getFullYear();
+      sel.value = BULAN_LIST[now.getMonth()];
+      buildCalendar();
+    }
+
+    function buildCalendar() {
+      var grid = document.getElementById('calendarGrid');
+      grid.innerHTML = '';
+      for (var d = 1; d <= 31; d++) {
+        (function (day) {
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'day-btn';
+          btn.textContent = day;
+          if (selectedDates.indexOf(day) !== -1) btn.classList.add('selected');
+          btn.addEventListener('click', function () { toggleDate(day); });
+          grid.appendChild(btn);
+        })(d);
+      }
+      renderChips();
+    }
+
+    function toggleDate(day) {
+      var idx = selectedDates.indexOf(day);
+      if (idx === -1) selectedDates.push(day); else selectedDates.splice(idx, 1);
+      selectedDates.sort(function (a, b) { return a - b; });
+      buildCalendar();
+      clearFieldError('field-tanggal');
+    }
+
+    function renderChips() {
+      var wrap = document.getElementById('selectedChips');
+      wrap.innerHTML = '';
+      selectedDates.forEach(function (day) {
+        var chip = document.createElement('span');
+        chip.className = 'chip';
+        chip.innerHTML = 'Tgl ' + day + ' <button type="button" aria-label="Hapus">×</button>';
+        chip.querySelector('button').addEventListener('click', function () { toggleDate(day); });
+        wrap.appendChild(chip);
+      });
+    }
+
+    document.querySelectorAll('.shift-card').forEach(function (card) {
+      card.addEventListener('click', function () {
+        selectedShift = card.getAttribute('data-shift');
+        document.querySelectorAll('.shift-card').forEach(function (c) { c.classList.remove('active'); });
+        card.classList.add('active');
+        clearFieldError('field-shift');
+      });
+    });
+
+    document.getElementById('bulan').addEventListener('change', function () {
+      clearFieldError('field-bulan');
+    });
+    document.getElementById('tahun').addEventListener('input', function () {
+      clearFieldError('field-tahun');
+    });
+    document.getElementById('email').addEventListener('input', function () {
+      clearFieldError('field-email');
+    });
+
+    function setFieldError(id) { document.getElementById(id).classList.add('invalid'); }
+    function clearFieldError(id) { document.getElementById(id).classList.remove('invalid'); }
+
+    function validateClient() {
+      var ok = true;
+      var bulan = document.getElementById('bulan').value;
+      var tahun = Number(document.getElementById('tahun').value);
+      var email = document.getElementById('email').value.trim();
+      var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+      if (!bulan) { setFieldError('field-bulan'); ok = false; }
+      if (!tahun || tahun < 2020 || tahun > 2100) { setFieldError('field-tahun'); ok = false; }
+      if (!selectedShift) { setFieldError('field-shift'); ok = false; }
+      if (selectedDates.length === 0) { setFieldError('field-tanggal'); ok = false; }
+      if (!emailRegex.test(email)) { setFieldError('field-email'); ok = false; }
+
+      return ok;
+    }
+
+    function showBanner(msg) {
+      var b = document.getElementById('banner');
+      document.getElementById('bannerText').textContent = msg;
+      b.classList.add('show');
+    }
+    function hideBanner() {
+      document.getElementById('banner').classList.remove('show');
+    }
+
+    function setLoading(isLoading) {
+      var btn = document.getElementById('submitBtn');
+      btn.disabled = isLoading;
+      btn.classList.toggle('loading', isLoading);
+      document.getElementById('submitLabel').textContent = isLoading ? 'Mengirim...' : 'Kirim Jadwal Shift';
+    }
+
+    function handleSubmit() {
+      hideBanner();
+      if (!validateClient()) {
+        showBanner('Mohon lengkapi field yang ditandai sebelum mengirim.');
+        return;
+      }
+      var payload = {
+        bulan: document.getElementById('bulan').value,
+        tahun: Number(document.getElementById('tahun').value),
+        shiftAwal: selectedShift,
+        daftarTanggal: selectedDates,
+        email: document.getElementById('email').value.trim()
+      };
+
+      setLoading(true);
+
+      // Content-Type text/plain (bukan application/json) supaya browser TIDAK
+      // mengirim CORS preflight (OPTIONS) — Apps Script Web App tidak bisa
+      // menjawab preflight tsb. Body tetap string JSON, di-parse manual di doPost().
+      fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      })
+        .then(function (res) { return res.json(); })
+        .then(function (result) {
+          setLoading(false);
+          if (result && result.ok) {
+            document.getElementById('formState').classList.remove('show');
+            document.getElementById('successState').classList.add('show');
+          } else {
+            showBanner((result && result.message) || 'Terjadi kesalahan saat mengirim data.');
+          }
+        })
+        .catch(function () {
+          setLoading(false);
+          showBanner('Gagal menghubungi server. Periksa koneksi internet Anda dan coba lagi.');
+        });
+    }
+
+    function resetForm() {
+      selectedShift = null;
+      selectedDates = [];
+      document.querySelectorAll('.shift-card').forEach(function (c) { c.classList.remove('active'); });
+      document.getElementById('email').value = '';
+      ['field-bulan','field-tahun','field-shift','field-tanggal','field-email'].forEach(clearFieldError);
+      hideBanner();
+      setLoading(false);
+      buildCalendar();
+      document.getElementById('successState').classList.remove('show');
+      document.getElementById('formState').classList.add('show');
+    }
+
+    initBulanOptions();
+    document.getElementById('formState').classList.add('show');
+  </script>
+</body>
+</html>

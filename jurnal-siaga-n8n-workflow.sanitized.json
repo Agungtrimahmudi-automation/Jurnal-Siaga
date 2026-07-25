@@ -1,0 +1,901 @@
+﻿{
+  "name": "Jurnal Siaga - Generator Bulanan (A/B/C/D)",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.googleapis.com/drive/v3/files",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"name\":\"Jurnal Siaga RB 210 Charlie {{ $json.BULAN }} {{ $json.TAHUN }} \",\"mimeType\":\"application/vnd.google-apps.spreadsheet\"} ",
+        "options": {}
+      },
+      "name": "Buat Spreadsheet Baru",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -496,
+        -240
+      ],
+      "id": "496023e5-e359-427e-8350-8ec029229f8c",
+      "credentials": {
+        "googleApi": {
+          "id": "<CRED_GOOGLE_SERVICE_ACCOUNT>",
+          "name": "Google Service Account account"
+        },
+        "googleOAuth2Api": {
+          "id": "<CRED_GOOGLE_OAUTH>",
+          "name": "Google account"
+        },
+        "googleDriveOAuth2Api": {
+          "id": "<CRED_GOOGLE_DRIVE>",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputData = $('Normalisasi Data Form').first().json;\n\nconst daftarTanggalRaw = inputData.daftar_tanggal;\nconst bulan = inputData.bulan;\nconst tahun = inputData.tahun;\nconst shiftAwal = inputData.shift_awal;\n\nif (!daftarTanggalRaw || !bulan || !tahun || !shiftAwal) {\n  throw new Error('Salah satu field wajib (daftar_tanggal, bulan, tahun, shift_awal) kosong.');\n}\n\nif (shiftAwal !== 'S1' && shiftAwal !== 'S2') {\n  throw new Error('shift_awal harus berisi \"S1\" atau \"S2\". Nilai diterima: ' + shiftAwal);\n}\n\nconst bulanMap = {\n  'Januari': 0, 'Februari': 1, 'Maret': 2, 'April': 3, 'Mei': 4, 'Juni': 5,\n  'Juli': 6, 'Agustus': 7, 'September': 8, 'Oktober': 9, 'November': 10, 'Desember': 11\n};\n\nif (!(bulan in bulanMap)) {\n  throw new Error('Nama bulan tidak dikenali: ' + bulan + '. Gunakan format \"Januari\"..\"Desember\".');\n}\n\nconst hariNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];\n\nconst daftarTanggal = daftarTanggalRaw\n  .toString()\n  .split(',')\n  .map(s => s.trim())\n  .filter(s => s.length > 0);\n\nif (daftarTanggal.length === 0) {\n  throw new Error('daftar_tanggal tidak berisi tanggal yang valid.');\n}\n\nconst results = [];\n\nfor (let i = 0; i < daftarTanggal.length; i++) {\n  const tgl = parseInt(daftarTanggal[i], 10);\n  if (isNaN(tgl)) continue;\n\n  // Pergantian shift per tanggal: index genap = shift_awal, index ganjil = kebalikannya\n  const currentShift = (i % 2 === 0)\n    ? shiftAwal\n    : (shiftAwal === 'S1' ? 'S2' : 'S1');\n\n  const bulanIndex = bulanMap[bulan];\n  const dateObj = new Date(tahun, bulanIndex, tgl);\n  const hari = hariNames[dateObj.getDay()];\n\n  let templateTarget = '';\n  if (currentShift === 'S2') {\n    templateTarget = 'D';\n  } else if (currentShift === 'S1') {\n    if (['Selasa', 'Kamis'].includes(hari)) templateTarget = 'A';\n    else if (['Senin', 'Jumat'].includes(hari)) templateTarget = 'B';\n    else if (['Sabtu', 'Minggu', 'Rabu'].includes(hari)) templateTarget = 'C';\n  }\n\n  if (!templateTarget) {\n    throw new Error('Tidak bisa menentukan template untuk tanggal ' + tgl + ' (' + hari + ', shift ' + currentShift + ').');\n  }\n\n  results.push({\n    json: {\n      tanggal: tgl,\n      hari: hari,\n      shift: currentShift,\n      template_target: templateTarget,\n      sheet_name: tgl + '_' + bulan + '_' + currentShift,\n      hari_cell: hari,\n      tanggal_cell: tgl + ' ' + bulan + ' ' + tahun,\n      bulan: bulan,\n      tahun: tahun\n    }\n  });\n}\n\nreturn results;"
+      },
+      "name": "Klasifikasi Template A/B/C/D",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -48,
+        -240
+      ],
+      "id": "cc5f4cd2-0cbc-432c-bba5-e0ed955b40ce"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.template_target }}",
+                    "rightValue": "A",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.template_target }}",
+                    "rightValue": "B",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.template_target }}",
+                    "rightValue": "C",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.template_target }}",
+                    "rightValue": "D",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Tentukan Template",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        432,
+        -400
+      ],
+      "id": "b2d03dbd-36d9-44f3-8144-c4b7ac07126a"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/<MASTER_SPREADSHEET_ID>/sheets/<TEMPLATE_A_GID>:copyTo",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ destinationSpreadsheetId: $('Buat Spreadsheet Baru').first().json.id }) }}",
+        "options": {}
+      },
+      "name": "Copy Template A",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        672,
+        -576
+      ],
+      "id": "40ccbe4c-f309-4eaa-b5ef-b5259613f43a",
+      "credentials": {
+        "googleApi": {
+          "id": "<CRED_GOOGLE_SERVICE_ACCOUNT>",
+          "name": "Google Service Account account"
+        },
+        "googleOAuth2Api": {
+          "id": "<CRED_GOOGLE_OAUTH>",
+          "name": "Google account"
+        },
+        "googleSheetsOAuth2Api": {
+          "id": "<CRED_GOOGLE_SHEETS>",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/<MASTER_SPREADSHEET_ID>/sheets/<TEMPLATE_B_GID>:copyTo",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ destinationSpreadsheetId: $('Buat Spreadsheet Baru').first().json.id }) }}",
+        "options": {}
+      },
+      "name": "Copy Template B",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        672,
+        -416
+      ],
+      "id": "ef87f4a3-cb9b-471e-8beb-9c56e2727e12",
+      "credentials": {
+        "googleApi": {
+          "id": "<CRED_GOOGLE_SERVICE_ACCOUNT>",
+          "name": "Google Service Account account"
+        },
+        "googleOAuth2Api": {
+          "id": "<CRED_GOOGLE_OAUTH>",
+          "name": "Google account"
+        },
+        "googleSheetsOAuth2Api": {
+          "id": "<CRED_GOOGLE_SHEETS>",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/<MASTER_SPREADSHEET_ID>/sheets/<TEMPLATE_C_GID>:copyTo",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ destinationSpreadsheetId: $('Buat Spreadsheet Baru').first().json.id }) }}",
+        "options": {}
+      },
+      "name": "Copy Template C",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        672,
+        -256
+      ],
+      "id": "eb8931f8-e484-4845-8e2f-ec95e677e6a7",
+      "credentials": {
+        "googleApi": {
+          "id": "<CRED_GOOGLE_SERVICE_ACCOUNT>",
+          "name": "Google Service Account account"
+        },
+        "googleOAuth2Api": {
+          "id": "<CRED_GOOGLE_OAUTH>",
+          "name": "Google account"
+        },
+        "googleSheetsOAuth2Api": {
+          "id": "<CRED_GOOGLE_SHEETS>",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/<MASTER_SPREADSHEET_ID>/sheets/<TEMPLATE_D_GID>:copyTo",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ destinationSpreadsheetId: $('Buat Spreadsheet Baru').first().json.id }) }}",
+        "options": {}
+      },
+      "name": "Copy Template D",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        672,
+        -80
+      ],
+      "id": "369db4ce-193a-479d-b2f2-0dc6fdd94eac",
+      "credentials": {
+        "googleApi": {
+          "id": "<CRED_GOOGLE_SERVICE_ACCOUNT>",
+          "name": "Google Service Account account"
+        },
+        "googleOAuth2Api": {
+          "id": "<CRED_GOOGLE_OAUTH>",
+          "name": "Google account"
+        },
+        "googleSheetsOAuth2Api": {
+          "id": "<CRED_GOOGLE_SHEETS>",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": []
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "name": "Gabung Data Kembali",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        912,
+        -336
+      ],
+      "id": "e2bf7572-151c-43dc-8cda-bf22a04bc54b"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $('Buat Spreadsheet Baru').first().json.id }}:batchUpdate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ requests: [ { updateSheetProperties: { properties: { sheetId: $json.sheetId, title: $('Tentukan Template').item.json.sheet_name }, fields: 'title' } } ] }) }}",
+        "options": {}
+      },
+      "name": "Rename Sheet",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1152,
+        -336
+      ],
+      "id": "5610dfd3-16fa-4560-8c08-dffc1c332ce7",
+      "credentials": {
+        "googleApi": {
+          "id": "<CRED_GOOGLE_SERVICE_ACCOUNT>",
+          "name": "Google Service Account account"
+        },
+        "googleSheetsOAuth2Api": {
+          "id": "<CRED_GOOGLE_SHEETS>",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $('Buat Spreadsheet Baru').first().json.id }}/values:batchUpdate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ valueInputOption: 'USER_ENTERED', data: [ { range: $('Tentukan Template').item.json.sheet_name + '!C5', values: [[ $('Tentukan Template').item.json.hari_cell ]] }, { range: $('Tentukan Template').item.json.sheet_name + '!E5', values: [[ $('Tentukan Template').item.json.tanggal_cell ]] } ] }) }}",
+        "options": {}
+      },
+      "name": "Isi Sel Hari & Tanggal",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1392,
+        -336
+      ],
+      "id": "4d85eb91-3942-4ddd-a7f3-93294b468500",
+      "credentials": {
+        "googleApi": {
+          "id": "<CRED_GOOGLE_SERVICE_ACCOUNT>",
+          "name": "Google Service Account account"
+        },
+        "googleSheetsOAuth2Api": {
+          "id": "<CRED_GOOGLE_SHEETS>",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "copy",
+        "fileId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Buat Spreadsheet Baru').first().json.id }}"
+        },
+        "options": {}
+      },
+      "name": "Arsipkan ke Folder Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        128,
+        16
+      ],
+      "id": "24f71182-6853-47ad-8c28-91782195925d",
+      "executeOnce": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "<CRED_GOOGLE_DRIVE>",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "deleteFile",
+        "fileId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Buat Spreadsheet Baru').first().json.id }}"
+        },
+        "options": {}
+      },
+      "name": "Hapus File Sementara (Opsional)",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        432,
+        16
+      ],
+      "id": "b72c42de-d0f5-4930-8c5e-598078acb136",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "<CRED_GOOGLE_DRIVE>",
+          "name": "Google Drive account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "name": "Loop Over Items1",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        208,
+        -272
+      ],
+      "id": "e6b200f9-baed-43a4-b406-b6f6d921d2e9"
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "<RESPONSE_SPREADSHEET_ID>",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "<RESPONSE_SHEET_GID>",
+          "mode": "list",
+          "cachedResultName": "Form Responses 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/<RESPONSE_SPREADSHEET_ID>/edit#gid=<RESPONSE_SHEET_GID>"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        -704,
+        -240
+      ],
+      "id": "56c1b2df-7142-4822-b458-a138ebabc22c",
+      "name": "Google Sheets Trigger",
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "RkvOs4RZHjtiwqaH",
+          "name": "Google Sheets Trigger account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d282953d-9dfa-47a3-94ed-190feb6a8fd7",
+              "name": "=daftar_tanggal",
+              "value": "={{ $('Google Sheets Trigger').item.json[\"INPUT TANGGAL APA SAJA SHIFT ANDA\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "c1df4f74-db5f-48ad-b796-66f006db2cea",
+              "name": "bulan",
+              "value": "={{ $('Google Sheets Trigger').item.json.BULAN }}",
+              "type": "string"
+            },
+            {
+              "id": "50596149-113e-482b-8198-09295b7d1eab",
+              "name": "tahun",
+              "value": "={{ $('Google Sheets Trigger').item.json.TAHUN }}",
+              "type": "number"
+            },
+            {
+              "id": "acbfd2f1-6ce3-4fa6-bcfd-26c6100baddb",
+              "name": "shift_awal",
+              "value": "={{ $('Google Sheets Trigger').item.json[\"WAKTU DIMULAI SHIFT BULAN INI\\n\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "b98a6b8f-f3d4-417c-9678-592cd5558a5e",
+              "name": "email_pengaju",
+              "value": "={{ $('Google Sheets Trigger').item.json[\"Email Address\"] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -288,
+        -240
+      ],
+      "id": "b23f7140-2dc6-4329-9545-9d58350ea49e",
+      "name": "Normalisasi Data Form"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $('Buat Spreadsheet Baru').first().json.id }}:batchUpdate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ requests: [ { deleteSheet: { sheetId: 0 } } ] }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -480,
+        16
+      ],
+      "id": "acdab2c0-a9c0-42d3-9719-5610bcebdc04",
+      "name": "Hapus Sheet1",
+      "executeOnce": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "<CRED_GOOGLE_SHEETS>",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://docs.google.com/spreadsheets/d/{{ $('Buat Spreadsheet Baru').first().json.id }}/export?format=pdf&size=A4&portrait=true&scale=4&top_margin=0.25&bottom_margin=0.25&left_margin=0.25&right_margin=0.25&gridlines=false&printtitle=false&sheetnames=false&pagenumbers=false",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -256,
+        16
+      ],
+      "id": "fca748f0-bd7c-4de1-a3cf-7d99406fd122",
+      "name": "Convert to PDF",
+      "executeOnce": true,
+      "credentials": {
+        "googleApi": {
+          "id": "<CRED_GOOGLE_SERVICE_ACCOUNT>",
+          "name": "Google Service Account account"
+        },
+        "googleSheetsOAuth2Api": {
+          "id": "<CRED_GOOGLE_SHEETS>",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "sender@example.com",
+        "toEmail": "={{ $('Normalisasi Data Form').item.json.email_pengaju }}",
+        "subject": "Berikut jurnal siaga anda",
+        "emailFormat": "text",
+        "options": {
+          "appendAttribution": false,
+          "fileAttachments": "data"
+        }
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        -48,
+        16
+      ],
+      "id": "b34a92f2-6a2a-4110-9d28-af1ec70db64c",
+      "name": "Send an Email",
+      "webhookId": "eb84e592-cc47-46fe-ab36-10c56da7f0e4",
+      "executeOnce": true,
+      "credentials": {
+        "smtp": {
+          "id": "ETzqeL5QJJGSoqzO",
+          "name": "SMTP account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Buat Spreadsheet Baru": {
+      "main": [
+        [
+          {
+            "node": "Normalisasi Data Form",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Klasifikasi Template A/B/C/D": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tentukan Template": {
+      "main": [
+        [
+          {
+            "node": "Copy Template A",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Copy Template B",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Copy Template C",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Copy Template D",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Copy Template A": {
+      "main": [
+        [
+          {
+            "node": "Gabung Data Kembali",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Copy Template B": {
+      "main": [
+        [
+          {
+            "node": "Gabung Data Kembali",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Copy Template C": {
+      "main": [
+        [
+          {
+            "node": "Gabung Data Kembali",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Copy Template D": {
+      "main": [
+        [
+          {
+            "node": "Gabung Data Kembali",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gabung Data Kembali": {
+      "main": [
+        [
+          {
+            "node": "Rename Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rename Sheet": {
+      "main": [
+        [
+          {
+            "node": "Isi Sel Hari & Tanggal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Isi Sel Hari & Tanggal": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Arsipkan ke Folder Drive": {
+      "main": [
+        [
+          {
+            "node": "Hapus File Sementara (Opsional)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items1": {
+      "main": [
+        [
+          {
+            "node": "Hapus Sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Tentukan Template",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets Trigger": {
+      "main": [
+        [
+          {
+            "node": "Buat Spreadsheet Baru",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalisasi Data Form": {
+      "main": [
+        [
+          {
+            "node": "Klasifikasi Template A/B/C/D",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hapus Sheet1": {
+      "main": [
+        [
+          {
+            "node": "Convert to PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to PDF": {
+      "main": [
+        [
+          {
+            "node": "Send an Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send an Email": {
+      "main": [
+        [
+          {
+            "node": "Arsipkan ke Folder Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "0cbda979-98ce-4a8e-bf70-48cd7aa7b633",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "<N8N_INSTANCE_ID>"
+  },
+  "nodeGroups": [],
+  "id": "zF37RMvLW5djeeku",
+  "tags": []
+}
+
