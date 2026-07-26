@@ -1,6 +1,6 @@
 # Jurnal Siaga Generator
 
-> Otomatisasi laporan dinas bulanan — dari pengisian manual per-shift jadi alur otomatis penuh: input jadwal → klasifikasi template → generate spreadsheet → PDF → email → arsip.
+> Automating a monthly duty report: from manual per-shift filling to a fully automated flow: input schedule to template classification to spreadsheet generation to PDF to email to archive.
 
 ![n8n](https://img.shields.io/badge/n8n-0A0A0A?style=for-the-badge&logo=n8n&logoColor=white)
 ![Google Sheets](https://img.shields.io/badge/Google%20Sheets-34A853?style=for-the-badge&logo=googlesheets&logoColor=white)
@@ -12,189 +12,189 @@
 
 ---
 
-## Daftar Isi
+## Table of Contents
 
-- [Ringkasan](#-ringkasan)
+- [Overview](#-overview)
 - [Problem](#-problem)
 - [Solution](#-solution)
 - [Result](#-result)
-- [Cara Kerja](#%EF%B8%8F-cara-kerja)
+- [How It Works](#%EF%B8%8F-how-it-works)
 - [Screenshot](#-screenshot)
-- [Struktur Folder](#%EF%B8%8F-struktur-folder)
-- [Dokumentasi Teknis Lengkap](#-dokumentasi-teknis-lengkap)
-- [Keamanan](#-keamanan)
+- [Folder Structure](#%EF%B8%8F-folder-structure)
+- [Full Technical Documentation](#-full-technical-documentation)
+- [Security](#-security)
 - [Author](#-author)
-- [Lisensi](#-lisensi)
+- [License](#-license)
 
 ---
 
-## 📌 Ringkasan
+## 📌 Overview
 
-Sistem ini mengotomatisasi pengisian **Jurnal Siaga** — log kegiatan harian personel jaga milik klien (unit siaga/rescue) — yang wajib diisi setiap bulan untuk setiap tanggal shift, mengikuti format resmi instansi (7 baris kegiatan per tanggal, isinya berbeda tergantung kombinasi shift & hari).
+This system automates filling out the **Jurnal Siaga**: a daily activity log for the client's on-duty personnel (an emergency response/rescue unit) that must be filled in every month for every shift date, following the organization's official format (7 activity rows per date, with content that varies by shift and day combination).
 
-| Aspek | Sebelum | Sesudah |
+| Aspect | Before | After |
 | :--- | :--- | :--- |
-| **Pengisian jurnal** | Manual, disalin per tanggal setiap bulan | Isi form sekali → seluruh tanggal ter-generate otomatis |
-| **Konfigurasi ID spreadsheet/tab** | Hardcode terpisah di 5 node | Terpusat, dicocokkan via `gid` |
-| **Dokumentasi logika bisnis** | Sempat hilang total saat *instance* n8n lama hilang | Terdokumentasi penuh di `workflows/jurnal-siaga-generator.md` |
-| **Status** | Manual | Otomatis |
+| **Journal filling** | Manual, copied per date every month | Fill the form once, every date is generated automatically |
+| **Spreadsheet/tab ID config** | Hardcoded separately across 5 nodes | Centralized, matched via `gid` |
+| **Business logic documentation** | Lost entirely when the old n8n instance was lost | Fully documented in `workflows/jurnal-siaga-generator.md` |
+| **Status** | Manual | Automated |
 
-**Status:** Rebuild dari sistem yang sebelumnya sempat berjalan di produksi (dibangun mandiri, sempat hilang karena *instance* n8n hilang tanpa dokumentasi). Saat ini dalam tahap penyelesaian deployment ulang: n8n self-hosted + form input kustom di VPS sendiri.
+**Status:** Rebuild of a system that previously ran in production (built independently, later lost when the n8n instance disappeared without documentation). Currently finishing redeployment: self-hosted n8n plus a custom input form on my own VPS.
 
 ---
 
 ## 🧠 Problem
 
-### Masalah yang Dihadapi
+### The Challenges
 
-| Masalah | Detail |
+| Problem | Detail |
 | :--- | :--- |
-| **Pengisian Manual Berulang** | Jurnal siaga bulanan diisi manual per tanggal shift, mengikuti format baku 7 baris kegiatan dengan jam yang sudah ditentukan — repetitif dan memakan waktu setiap bulan. |
-| **Dokumentasi Hilang** | Otomasi versi pertama (n8n self-hosted, dibangun mandiri) sempat berjalan di produksi, tapi *instance*-nya hilang tanpa dokumentasi tertulis — logika klasifikasi dan aturan bisnis nyaris ikut hilang. |
-| **Konfigurasi Tersebar** | ID *spreadsheet* dan *gid* tab template di-*hardcode* terpisah di 5 node berbeda — sekali ada perubahan, gampang lupa update semua tempat. |
-| **Pola Terlalu Template** | Jam nyala/matikan lampu di jurnal selalu identik persis setiap minggu — berisiko dicurigai "terlalu template" saat audit. |
-| **Tanpa Notifikasi Gagal** | Kalau workflow gagal di tengah jalan, tidak ada pemberitahuan — baru ketahuan saat klien menanyakan laporan yang belum masuk. |
-| **Operasi Khusus Tidak Terwadahi** | Kejadian operasi penyelamatan nyata (jarang, tapi terjadi) belum punya jalur input manual yang rapi tanpa merusak format baku 7 baris. |
-| **Bug Tersembunyi di Form Lama** | Satu nama kolom hasil isian Google Form punya karakter *newline* tak terlihat di ujungnya — bisa diam-diam mematahkan pemetaan data kalau tidak dicek ulang. |
+| **Repetitive manual filling** | The monthly duty journal was filled in manually per shift date, following a fixed 7-activity-row format with predetermined times: repetitive and time-consuming every month. |
+| **Lost documentation** | The first version of the automation (self-hosted n8n, built independently) ran in production for a while, but the instance was lost with no written documentation, nearly taking the classification logic and business rules with it. |
+| **Scattered configuration** | The spreadsheet ID and template tab `gid` were hardcoded separately across 5 different nodes: one change meant an easy-to-miss update in every location. |
+| **Pattern too templated** | The lights-on/lights-off times in the journal were identical every single week, risking suspicion of being "too templated" during an audit. |
+| **No failure notification** | If the workflow failed midway, there was no alert; it was only noticed when the client asked about a report that never arrived. |
+| **No path for special operations** | Real rescue operations (rare, but they happen) had no clean manual input path that wouldn't break the fixed 7-row format. |
+| **Hidden bug in the old form** | One column name from the Google Form responses had an invisible trailing newline character: something that could silently break the data mapping if left unchecked. |
 
-### Dampak
+### Impact
 
-- Waktu terbuang untuk kerja repetitif setiap bulan
-- Risiko kehilangan konteks/logika bisnis kalau infrastruktur hilang lagi
-- Rentan error senyap (ID salah, kolom salah) yang baru ketahuan belakangan
+- Time wasted on repetitive work every month
+- Risk of losing business context/logic if the infrastructure is lost again
+- Vulnerable to silent errors (wrong ID, wrong column) that only surface later
 
 ---
 
 ## 💡 Solution
 
-### Arsitektur
+### Architecture
 
-| Lapisan | Teknologi | Peran |
+| Layer | Technology | Role |
 | :--- | :--- | :--- |
-| **Input** | Custom web form (HTML/JS statis, host sendiri di VPS) | Terima isian jadwal shift bulanan |
-| **Jembatan** | Google Apps Script Web App | Terima POST dari form, tulis ke Google Sheets |
-| **Data** | Google Sheets | Sheet respons + *spreadsheet master* 4 tab template (A/B/C/D) |
-| **Eksekusi** | n8n (self-hosted, VPS, Docker + Caddy) | Klasifikasi template, generate jurnal, kirim & arsipkan |
-| **Output** | Google Drive + Email | PDF arsip & hasil ke pemohon |
+| **Input** | Custom web form (static HTML/JS, self-hosted on a VPS) | Collects the monthly shift schedule |
+| **Bridge** | Google Apps Script Web App | Receives the form POST, writes to Google Sheets |
+| **Data** | Google Sheets | Response sheet plus a master spreadsheet with 4 template tabs (A/B/C/D) |
+| **Execution** | n8n (self-hosted, VPS, Docker + Caddy) | Template classification, journal generation, sending, and archiving |
+| **Output** | Google Drive + Email | Archived PDFs and results sent to the requester |
 
-### Alur Kerja
+### Workflow
 
-**Tahap input:**
-
-```mermaid
-flowchart LR
-    A["Web Form (VPS)<br/>Isi jadwal shift"] --> B["Apps Script Web App<br/>Tulis ke Google Sheets"]
-    B --> C["Google Sheets Trigger<br/>Polling tiap 1 menit"]
-```
-
-**Tahap pemrosesan:**
+**Input stage:**
 
 ```mermaid
 flowchart LR
-    A["Normalisasi Data"] --> B["Klasifikasi Template<br/>A/B/C/D per tanggal"]
-    B --> C["Generate Spreadsheet<br/>per Tanggal"]
-    C --> D["Isi Sel Hari & Tanggal"]
-    D --> E["Convert ke PDF"]
-    E --> F["Kirim Email<br/>ke Pengaju"]
-    F --> G["Arsipkan ke<br/>Google Drive"]
+    A["Web Form (VPS)<br/>Fill shift schedule"] --> B["Apps Script Web App<br/>Write to Google Sheets"]
+    B --> C["Google Sheets Trigger<br/>Polls every 1 minute"]
 ```
 
-### Yang Dikerjakan
+**Processing stage:**
 
-- **Klasifikasi deterministik** — Code Node JavaScript murni (bukan AI) menentukan template A/B/C/D per tanggal: S2 selalu Template D; S1 dipetakan ke A/B/C sesuai hari. Hasilnya konsisten dan bisa diaudit.
-- **Sumber konfigurasi tunggal** — ID *spreadsheet master* dan *gid* tiap tab template disatukan di satu Set Node, menggantikan 5 titik hardcode terpisah.
-- **Format baku terjaga** — jumlah baris kegiatan tetap 7 sesuai format resmi instansi, tidak pernah bertambah/berkurang.
-- **Jalur override manual** — sheet terpisah `Log Operasi Khusus` untuk mencatat kejadian penyelamatan nyata dan menimpa isi baris tertentu lewat `values:batchUpdate`, tanpa mengubah struktur 7-baris.
-- **Form input pengganti** — Google Form diganti custom web form (`web-form/index.html`) yang di-*host* sendiri di VPS (Docker Compose + Caddy), terhubung ke `web-form/Code.gs` yang di-*deploy* sebagai Apps Script Web App. n8n Google Sheets Trigger tidak perlu diubah karena form baru menulis ke tab respons yang sama persis.
-- **Perbaikan bug integrasi** — dua bug baru ditemukan & diperbaiki saat integrasi: (1) pencarian sheet berdasarkan *nama* tidak cocok dengan nama asli bawaan Google Form, menyebabkan data nyasar ke tab kosong — diperbaiki dengan mencocokkan berdasarkan **gid**; (2) penulisan baris berbasis nama header (bukan urutan tetap), termasuk menangani bug *trailing newline* di header lama.
+```mermaid
+flowchart LR
+    A["Normalize Data"] --> B["Classify Template<br/>A/B/C/D per date"]
+    B --> C["Generate Spreadsheet<br/>per Date"]
+    C --> D["Fill Day & Date Cells"]
+    D --> E["Convert to PDF"]
+    E --> F["Send Email<br/>to Requester"]
+    F --> G["Archive to<br/>Google Drive"]
+```
 
-### Teknologi yang Digunakan
+### What Was Built
 
-| Teknologi | Fungsi |
+- **Deterministic classification**: a pure JavaScript Code Node (no AI) determines the A/B/C/D template per date: S2 is always Template D; S1 maps to A/B/C depending on the day. The result is consistent and auditable.
+- **Single source of configuration**: the master spreadsheet ID and each template tab's `gid` are unified into one Set Node, replacing 5 separate hardcoded points.
+- **Fixed format preserved**: the number of activity rows stays at 7 per the official format, never more or fewer.
+- **Manual override path**: a separate `Log Operasi Khusus` sheet records real rescue events and overwrites specific rows via `values:batchUpdate`, without changing the 7-row structure.
+- **Replacement input form**: the Google Form was replaced with a custom web form (`web-form/index.html`) self-hosted on a VPS (Docker Compose + Caddy), connected to `web-form/Code.gs` deployed as an Apps Script Web App. The n8n Google Sheets Trigger needed no changes since the new form writes to the exact same response tab.
+- **Integration bug fixes**: two new bugs were found and fixed during integration: (1) sheet lookup by *name* didn't match the raw name Google Form generates, causing data to land in an empty tab, fixed by matching on **gid** instead; (2) row writing by header name (rather than fixed order), including handling a trailing-newline bug in an old header.
+
+### Technologies Used
+
+| Technology | Function |
 | :--- | :--- |
-| **n8n** | Workflow orchestration, klasifikasi & eksekusi deterministik |
-| **Google Sheets API** | Baca data form & tulis hasil klasifikasi |
-| **Google Drive API** | Arsip PDF jurnal hasil generate |
-| **Google Apps Script** | Web App penghubung form kustom ke Sheets |
-| **JavaScript** | Logika klasifikasi template & validasi form |
-| **Gmail (n8n Email node)** | Kirim jurnal PDF ke pengaju |
-| **Docker Compose + Caddy** | Hosting form kustom di VPS sendiri dengan HTTPS otomatis |
+| **n8n** | Workflow orchestration, deterministic classification and execution |
+| **Google Sheets API** | Reads form data and writes classification results |
+| **Google Drive API** | Archives generated journal PDFs |
+| **Google Apps Script** | Web App bridging the custom form to Sheets |
+| **JavaScript** | Template classification logic and form validation |
+| **Gmail (n8n Email node)** | Sends the PDF journal to the requester |
+| **Docker Compose + Caddy** | Hosts the custom form on my own VPS with automatic HTTPS |
 
 ---
 
 ## 📊 Result
 
-- Pengisian jurnal bulanan yang tadinya manual per-tanggal kini otomatis penuh: isi form sekali → jurnal per tanggal ter-generate, ter-konversi PDF, terkirim email, dan terarsip ke Drive tanpa campur tangan lanjutan.
-- Rebuild kali ini terdokumentasi penuh — risiko kehilangan logika bisnis kalau infrastruktur hilang lagi jauh berkurang.
-- Kelas bug "salah ID/salah tab" yang jadi biang error di versi lama dihilangkan lewat sentralisasi konfigurasi dan pencocokan berbasis gid + nama header.
-- Form input kini 100% terkontrol sendiri (desain, domain, validasi) — lepas dari batasan tampilan Google Form.
+- Monthly journal filling that used to be manual per date is now fully automated: fill the form once and the per-date journal is generated, converted to PDF, emailed, and archived to Drive with no further intervention.
+- This rebuild is fully documented, greatly reducing the risk of losing business logic if the infrastructure is lost again.
+- The "wrong ID/wrong tab" bug class that caused errors in the old version has been eliminated through centralized configuration and gid plus header-name matching.
+- The input form is now 100% self-controlled (design, domain, validation), free from Google Form's display limitations.
 
 ---
 
-## 🛠️ Cara Kerja
+## 🛠️ How It Works
 
-### Bagi Pengguna
+### For Users
 
-1. Buka form (`web-form/index.html`, di-host di domain sendiri)
-2. Pilih bulan & tahun
-3. Pilih shift awal bulan ini (S1 Pagi / S2 Malam)
-4. Klik tanggal-tanggal shift di kalender
-5. Isi email pengaju
-6. Klik Kirim
-7. Tunggu email — jurnal PDF per tanggal otomatis dikirim & diarsipkan ke Drive
+1. Open the form (`web-form/index.html`, hosted on my own domain)
+2. Select month and year
+3. Select the starting shift for the month (S1 Day / S2 Night)
+4. Click the shift dates on the calendar
+5. Enter the requester's email
+6. Click Submit
+7. Wait for email: the per-date PDF journal is sent automatically and archived to Drive
 
-### Bagi Developer
+### For Developers
 
-1. Clone repository ini
-2. Salin `.env.example` ke `.env`, isi kredensial & ID yang dibutuhkan
-3. Deploy `web-form/Code.gs` sebagai Google Apps Script Web App (`Execute as: Me`, `Who has access: Anyone`)
-4. Isi `APPS_SCRIPT_URL` di `web-form/index.html` dengan URL deployment, lalu host file itu di VPS
-5. Import `jurnal-siaga-n8n-workflow.sanitized.json` ke n8n, sesuaikan credential
-6. Aktifkan workflow
+1. Clone this repository
+2. Copy `.env.example` to `.env` and fill in the required credentials and IDs
+3. Deploy `web-form/Code.gs` as a Google Apps Script Web App (`Execute as: Me`, `Who has access: Anyone`)
+4. Fill in `APPS_SCRIPT_URL` in `web-form/index.html` with the deployment URL, then host that file on a VPS
+5. Import `jurnal-siaga-n8n-workflow.sanitized.json` into n8n and adjust the credentials
+6. Activate the workflow
 
 ---
 
 ## 📸 Screenshot
 
-> Belum tersedia — daftar file yang dibutuhkan (workflow n8n, form desktop/mobile, sheet
-> respons, contoh PDF) ada di [`assets/README.md`](assets/README.md). Section ini akan diisi
-> begitu file screenshot aslinya sudah ditaruh di `assets/`.
+> Not available yet. The list of files needed (n8n workflow, desktop/mobile form, response
+> sheet, sample PDF) is in [`assets/README.md`](assets/README.md). This section will be filled
+> in once the actual screenshot files are placed in `assets/`.
 
 ---
 
-## 🗂️ Struktur Folder
+## 🗂️ Folder Structure
 
 ```
 .
-├── workflows/       # Dokumentasi SOP (Markdown) — spesifikasi teknis & alur kerja
-├── web-form/        # Form input kustom: Code.gs (Apps Script Web App) + index.html (statis, di-host di VPS)
-├── tools/           # Skrip Python deterministik untuk eksekusi pendukung
-├── assets/          # Screenshot & media dokumentasi (case study)
-├── .env.example     # Template variabel lingkungan (tanpa nilai asli)
-├── .tmp/            # File sementara (diabaikan oleh Git)
-├── secrets/         # File mentah berisi kredensial/ID asli (diabaikan oleh Git)
-├── .gitignore       # Daftar file/folder yang tidak di-commit
-└── README.md        # Dokumen ini
+├── workflows/       # SOP documentation (Markdown): technical spec and workflow
+├── web-form/        # Custom input form: Code.gs (Apps Script Web App) + index.html (static, hosted on a VPS)
+├── tools/           # Deterministic Python scripts for supporting execution
+├── assets/          # Screenshots and documentation media (case study)
+├── .env.example     # Environment variable template (no real values)
+├── .tmp/            # Temporary files (ignored by Git)
+├── secrets/         # Raw files with real credentials/IDs (ignored by Git)
+├── .gitignore       # List of files/folders not committed
+└── README.md        # This document
 ```
 
 ---
 
-## 📚 Dokumentasi Teknis Lengkap
+## 📚 Full Technical Documentation
 
-- **Spesifikasi teknis & aturan klasifikasi lengkap**: [`workflows/jurnal-siaga-generator.md`](workflows/jurnal-siaga-generator.md)
-- **Workflow n8n versi tersanitasi** (ID diganti placeholder, aman untuk publik): [`jurnal-siaga-n8n-workflow.sanitized.json`](jurnal-siaga-n8n-workflow.sanitized.json)
-- **Backend & source form input kustom**: [`web-form/`](web-form/)
+- **Full technical spec and classification rules**: [`workflows/jurnal-siaga-generator.md`](workflows/jurnal-siaga-generator.md)
+- **Sanitized n8n workflow** (IDs replaced with placeholders, safe for the public): [`jurnal-siaga-n8n-workflow.sanitized.json`](jurnal-siaga-n8n-workflow.sanitized.json)
+- **Backend and source for the custom input form**: [`web-form/`](web-form/)
 
 ---
 
-## 🔒 Keamanan
+## 🔒 Security
 
-File `.env`, direktori `secrets/`, dan seluruh berkas berisi kredensial telah dikonfigurasi di dalam `.gitignore`.
-Dengan demikian, repositori ini aman untuk dipublikasikan sebagai portfolio tanpa risiko membocorkan:
+The `.env` file, the `secrets/` directory, and every file containing credentials are configured in `.gitignore`.
+This makes the repository safe to publish as a portfolio piece without risk of leaking:
 
-- ID spreadsheet
-- Alamat email/nomor telepon
-- Kunci API atau token akses apa pun
+- Spreadsheet IDs
+- Email addresses/phone numbers
+- Any API keys or access tokens
 
 ---
 
@@ -208,6 +208,6 @@ Dengan demikian, repositori ini aman untuk dipublikasikan sebagai portfolio tanp
 
 ---
 
-## 📄 Lisensi
+## 📄 License
 
-**All Rights Reserved** — lihat [`LICENSE`](LICENSE). Hak cipta sepenuhnya dimiliki oleh Agung Tri Mahmudi. Repositori ini dipublikasikan untuk keperluan portfolio dan referensi; tidak ada izin untuk menyalin, memodifikasi, atau mendistribusikan ulang tanpa izin tertulis dari pemilik.
+**All Rights Reserved**, see [`LICENSE`](LICENSE). Copyright is fully retained by Agung Tri Mahmudi. This repository is published for portfolio and reference purposes; no permission is granted to copy, modify, or redistribute it without the owner's written consent.
