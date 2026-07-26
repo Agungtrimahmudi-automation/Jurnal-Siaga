@@ -156,19 +156,9 @@ flowchart LR
 
 ## 📸 Screenshot
 
-> Tempatkan file gambar di `assets/` dengan nama berikut, gambar akan otomatis tampil di sini.
-
-| Workflow n8n | Klasifikasi Template |
-| :--- | :--- |
-| ![n8n workflow overview](assets/n8n-workflow-overview.png) | ![Node klasifikasi template](assets/n8n-classification-node.png) |
-
-| Form Desktop | Form Mobile |
-| :--- | :--- |
-| ![Form desktop](assets/web-form-desktop.png) | ![Form mobile](assets/web-form-mobile.png) |
-
-| Sheet Respons | Contoh PDF Jurnal |
-| :--- | :--- |
-| ![Sheet respons](assets/sheet-response.png) | ![Contoh PDF jurnal](assets/generated-journal-pdf.png) |
+> Belum tersedia — daftar file yang dibutuhkan (workflow n8n, form desktop/mobile, sheet
+> respons, contoh PDF) ada di [`assets/README.md`](assets/README.md). Section ini akan diisi
+> begitu file screenshot aslinya sudah ditaruh di `assets/`.
 
 ---
 
