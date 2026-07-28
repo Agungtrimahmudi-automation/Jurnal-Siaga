@@ -30,7 +30,7 @@
 
 ## 📌 Overview
 
-This system automates filling out the **Jurnal Siaga**: a daily activity log for the client's on-duty personnel (an emergency response/rescue unit) that must be filled in every month for every shift date, following the organization's official format (7 activity rows per date, with content that varies by shift and day combination).
+This system automates filling out the **Jurnal Siaga**: a daily activity log for on-duty personnel at an emergency response/rescue unit that must be filled in every month for every shift date, following the organization's official format (7 activity rows per date, with content that varies by shift and day combination).
 
 | Aspect | Before | After |
 | :--- | :--- | :--- |
@@ -53,7 +53,7 @@ This system automates filling out the **Jurnal Siaga**: a daily activity log for
 | **Lost documentation** | The first version of the automation (self-hosted n8n, built independently) ran in production for a while, but the instance was lost with no written documentation, nearly taking the classification logic and business rules with it. |
 | **Scattered configuration** | The spreadsheet ID and template tab `gid` were hardcoded separately across 5 different nodes: one change meant an easy-to-miss update in every location. |
 | **Pattern too templated** | The lights-on/lights-off times in the journal were identical every single week, risking suspicion of being "too templated" during an audit. |
-| **No failure notification** | If the workflow failed midway, there was no alert; it was only noticed when the client asked about a report that never arrived. |
+| **No failure notification** | If the workflow failed midway, there was no alert; it was only noticed when someone asked about a report that never arrived. |
 | **No path for special operations** | Real rescue operations (rare, but they happen) had no clean manual input path that wouldn't break the fixed 7-row format. |
 | **Hidden bug in the old form** | One column name from the Google Form responses had an invisible trailing newline character: something that could silently break the data mapping if left unchecked. |
 
@@ -126,8 +126,8 @@ flowchart LR
 
 - Monthly journal filling that used to be manual per date is now fully automated: fill the form once and the per-date journal is generated, converted to PDF, emailed, and archived to Drive with no further intervention.
 - This rebuild is fully documented, greatly reducing the risk of losing business logic if the infrastructure is lost again.
-- The "wrong ID/wrong tab" bug class that caused errors in the old version has been eliminated through centralized configuration and gid plus header-name matching.
-- The input form is now 100% self-controlled (design, domain, validation), free from Google Form's display limitations.
+- The "wrong ID/wrong tab" bug class that caused errors in the old version is now prevented by centralized configuration and gid plus header-name matching.
+- The input form is now built and hosted end to end by me (design, domain, validation), which removes Google Form's display limitations.
 
 ---
 
